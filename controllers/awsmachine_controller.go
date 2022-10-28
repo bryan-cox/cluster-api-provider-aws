@@ -290,9 +290,16 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	ec2Service := r.getEC2Service(ec2Scope)
 
-	if err := r.deleteBootstrapData(machineScope, clusterScope, objectStoreScope); err != nil {
-		machineScope.Error(err, "unable to delete machine")
+	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
+	if err != nil {
 		return ctrl.Result{}, err
+	}
+	if machineScope.UseSecretsManager(userDataFormat) {
+		machineScope.Info("Bryan - made it in here")
+		if err := r.deleteBootstrapData(machineScope, clusterScope, objectStoreScope); err != nil {
+			machineScope.Error(err, "unable to delete machine")
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
